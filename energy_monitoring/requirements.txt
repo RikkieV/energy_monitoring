@@ -1,0 +1,6 @@
+requests
+pymodbus>=3.0.0
+pyserial
+influxdb-client
+tapo
+flask

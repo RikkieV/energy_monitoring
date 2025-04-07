@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:latest
+    command:
+      - "--api"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedByDefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesResolvers.myresolver.acme.httpChallenge=true"
+      - "--certificatesResolvers.myresolver.acme.httpChallenge.entryPoint=web"
+      - "--certificatesResolvers.myresolver.acme.email=admin@${DOMAIN}"
+      - "--certificatesResolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - ./letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api.rule=Host(`${DOMAIN}`) && PathPrefix(`/dashboard`)"
+      - "traefik.http.routers.api.entrypoints=websecure"
+      - "traefik.http.routers.api.tls=true"
+      - "traefik.http.routers.api.tls.certresolver=myresolver"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=admin:$apr1$YOUR_HASH_HERE"
+    networks:
+      - energy-net
+
+  app:
+    build: .
+    volumes:
+      - ./devices.json:/app/devices.json
+      - ./energy_monitoring.log:/app/energy_monitoring.log
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - influxdb
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.services.app.loadbalancer.server.port=5000"
+    networks:
+      - energy-net
+
+  web_config:
+    build: .
+    command: ["python", "web_config.py"]
+    volumes:
+      - ./devices.json:/app/devices.json
+    ports:
+      - "5001:5001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web_config.rule=Host(`${DOMAIN}`) && PathPrefix(`/config`)"
+      - "traefik.http.routers.web_config.entrypoints=websecure"
+      - "traefik.http.routers.web_config.tls=true"
+      - "traefik.http.routers.web_config.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.web_config-stripprefix.stripprefix.prefixes=/config"
+      - "traefik.http.routers.web_config.middlewares=web_config-stripprefix"
+      - "traefik.http.services.web_config.loadbalancer.server.port=5001"
+    networks:
+      - energy-net
+
+  influxdb:
+    image: influxdb:2.7
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_BUCKET}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${INFLUXDB_TOKEN}
+    ports:
+      - "8086:8086"
+    networks:
+      - energy-net
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USERNAME}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`${DOMAIN}`) && PathPrefix(`/grafana`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.grafana-stripprefix.stripprefix.prefixes=/grafana"
+      - "traefik.http.routers.grafana.middlewares=grafana-stripprefix"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    networks:
+      - energy-net
+
+volumes:
+  influxdb-data:
+  grafana-data:
+  letsencrypt:
+
+networks:
+  energy-net:
+    driver: bridge

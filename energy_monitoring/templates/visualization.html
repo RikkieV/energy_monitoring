@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Configure Visualization</h2>
+<form method="post">
+    <label>Update Interval (seconds):</label><br>
+    <input type="number" name="update_interval" value="{{ config.update_interval }}" required><br><br>
+    <input type="submit" value="Save">
+</form>
+{% endblock %}

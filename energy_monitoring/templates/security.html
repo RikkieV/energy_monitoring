@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Configure Security</h2>
+<form method="post">
+    <label>Grafana Username:</label><br>
+    <input type="text" name="grafana_username" value="{{ config.grafana_username }}" required><br><br>
+    <label>Grafana Password:</label><br>
+    <input type="text" name="grafana_password" value="{{ config.grafana_password }}" required><br><br>
+    <label>Flask API Key:</label><br>
+    <input type="text" name="flask_api_key" value="{{ config.flask_api_key }}" required><br><br>
+    <input type="submit" value="Save">
+</form>
+{% endblock %}

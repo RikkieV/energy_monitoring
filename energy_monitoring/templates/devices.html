@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Manage Devices</h2>
+<h3>Current Devices</h3>
+<ul>
+    {% for device in config.devices %}
+        <li>{{ device.name }} ({{ device.vendor }}, {{ device.group }}, Interval: {{ device.interval }}s)
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="index" value="{{ loop.index0 }}">
+                <input type="submit" value="Edit">
+            </form>
+            <form method="post" style="display:inline;">
+                <input type="hidden" name="action" value="remove">
+                <input type="hidden" name="index" value="{{ loop.index0 }}">
+                <input type="submit" value="Remove" onclick="return confirm('Are you sure?');">
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+
+<h3>Add/Edit Device</h3>
+<form method="post">
+    <input type="hidden" name="action" value="{{ 'edit' if request.args.get('edit') else 'add' }}">
+    {% if request.args.get('edit') %}
+        <input type="hidden" name="index" value="{{ request.args.get('edit') }}">
+        {% set device = config.devices[int(request.args.get('edit'))] %}
+    {% endif %}
+    <label>Name:</label><br>
+    <input type="text" name="name" value="{{ device.name if device else '' }}" required><br><br>
+    <label>Vendor:</label><br>
+    <select name="vendor" onchange="updateCommFields(this.value)">
+        {% for vendor in vendors %}
+            <option value="{{ vendor }}" {% if device and device.vendor == vendor %}selected{% endif %}>{{ vendor }}</option>
+        {% endfor %}
+    </select><br><br>
+    <label>Group:</label><br>
+    <select name="group">
+        {% for group in groups %}
+            <option value="{{ group }}" {% if device and device.group == group %}selected{% endif %}>{{ group }}</option>
+        {% endfor %}
+    </select><br><br>
+    <label>Interval (seconds):</label><br>
+    <input type="number" name="interval" value="{{ device.interval if device else '10' }}" required><br><br>
+    
+    <div id="comm_fields">
+        {% if device and device.communication.type == 'modbus_tcp' %}
+            <label>IP Address:</label><br>
+            <input type="text" name="ip" value="{{ device.communication.ip }}" required><br><br>
+            <label>Port:</label><br>
+            <input type="number" name="port" value="{{ device.communication.port }}" required><br><br>
+            <label>Slave ID:</label><br>
+            <input type="number" name="slave_id" value="{{ device.communication.slave_id }}" required><br><br>
+            <label>Power Register:</label><br>
+            <input type="number" name="power" value="{{ device.communication.registers.power }}" required><br><br>
+            <label>Energy Register:</label><br>
+            <input type="number" name="energy" value="{{ device.communication.registers.energy }}" required><br><br>
+            {% if device.vendor == 'SMA_Tripower_Battery' %}
+                <label>SoC Register:</label><br>
+                <input type="number" name="soc" value="{{ device.communication.registers.soc }}" required><br><br>
+                <label>Temperature Register:</label><br>
+                <input type="number" name="temperature" value="{{ device.communication.registers.temperature }}" required><br><br>
+            {% endif %}
+        {% elif device and device.communication.type == 'api' and device.vendor == 'SolarEdge' %}
+            <label>URL:</label><br>
+            <input type="text" name="url" value="{{ device.communication.url }}" required><br><br>
+            <label>API Key:</label><br>
+            <input type="text" name="api_key" value="{{ device.communication.api_key }}" required><br><br>
+            <label>Site ID:</label><br>
+            <input type="text" name="site_id" value="{{ device.communication.site_id }}" required><br><br>
+            <label>Timeout (seconds):</label><br>
+            <input type="number" name="timeout" value="{{ device.communication.timeout }}" required><br><br>
+        {% endif %}
+    </div>
+    <input type="submit" value="Save">
+</form>
+
+<script>
+function updateCommFields(vendor) {
+    const commFields = document.getElementById('comm_fields');
+    commFields.innerHTML = '';
+    if (vendor === 'SMA' || vendor === 'SMA_Tripower_Battery' || vendor === 'SMA_EVCharger' || vendor === 'Bender_CC613' || vendor === 'Alfen_EVCharger' || vendor === 'AlphaInnotec') {
+        commFields.innerHTML = `
+            <label>IP Address:</label><br>
+            <input type="text" name="ip" value="192.168.1.100" required><br><br>
+            <label>Port:</label><br>
+            <input type="number" name="port" value="502" required><br><br>
+            <label>Slave ID:</label><br>
+            <input type="number" name="slave_id" value="3" required><br><br>
+            <label>Power Register:</label><br>
+            <input type="number" name="power" value="${vendor === 'SMA_Tripower_Battery' ? '30845' : '30775'}" required><br><br>
+            <label>Energy Register:</label><br>
+            <input type="number" name="energy" value="${vendor === 'SMA_Tripower_Battery' ? '30847' : '30529'}" required><br><br>
+            ${vendor === 'SMA_Tripower_Battery' ? `
+                <label>SoC Register:</label><br>
+                <input type="number" name="soc" value="30865" required><br><br>
+                <label>Temperature Register:</label><br>
+                <input type="number" name="temperature" value="30867" required><br><br>
+            ` : ''}
+        `;
+    } else if (vendor === 'SolarEdge') {
+        commFields.innerHTML = `
+            <label>URL:</label><br>
+            <input type="text" name="url" value="https://monitoringapi.solaredge.com/site/{site_id}/overview" required><br><br>
+            <label>API Key:</label><br>
+            <input type="text" name="api_key" value="your_solaredge_key" required><br><br>
+            <label>Site ID:</label><br>
+            <input type="text" name="site_id" value="your_site_id" required><br><br>
+            <label>Timeout (seconds):</label><br>
+            <input type="number" name="timeout" value="5" required><br><br>
+        `;
+    }
+}
+</script>
+{% endblock %}

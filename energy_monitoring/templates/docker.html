@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Manage Docker Containers</h2>
+<form method="post">
+    <button type="submit" name="action" value="start">Start Containers</button>
+    <button type="submit" name="action" value="stop">Stop Containers</button>
+    <button type="submit" name="action" value="update">Update Containers</button>
+</form>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="message {{ 'success' if category != 'error' else 'error' }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+{% endblock %}

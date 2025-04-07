@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Configure Database</h2>
+<form method="post">
+    <label>InfluxDB URL:</label><br>
+    <input type="text" name="url" value="{{ config.url }}" required><br><br>
+    <label>Username:</label><br>
+    <input type="text" name="username" value="{{ config.username }}" required><br><br>
+    <label>Password:</label><br>
+    <input type="text" name="password" value="{{ config.password }}" required><br><br>
+    <label>Token:</label><br>
+    <input type="text" name="token" value="{{ config.token }}" required><br><br>
+    <label>Org:</label><br>
+    <input type="text" name="org" value="{{ config.org }}" required><br><br>
+    <label>Bucket:</label><br>
+    <input type="text" name="bucket" value="{{ config.bucket }}" required><br><br>
+    <input type="submit" value="Save">
+</form>
+{% endblock %}

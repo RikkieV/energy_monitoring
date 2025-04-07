@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Database Maintenance</h2>
+<h3>Bucket: {{ bucket }}</h3>
+<form method="post">
+    <button type="submit" name="action" value="clear" onclick="return confirm('Are you sure you want to clear the bucket? All data will be lost!');">Clear Bucket</button><br><br>
+    <label>Backup File Path:</label><br>
+    <input type="text" name="backup_path" placeholder="{{ bucket }}_backup.jsonl"><br><br>
+    <button type="submit" name="action" value="backup">Backup Bucket</button>
+</form>
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="message {{ 'success' if category != 'error' else 'error' }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+{% endblock %}
