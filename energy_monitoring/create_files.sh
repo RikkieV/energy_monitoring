@@ -51,8 +51,6 @@ EOF
 
 # Create docker-compose.yml
 cat << 'EOF' > docker-compose.yml
-version: '3.8'
-
 services:
   traefik:
     image: traefik:latest
